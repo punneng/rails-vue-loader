@@ -2,6 +2,7 @@ require 'active_support/concern'
 require "action_view"
 module Sprockets::Vue
   class Script
+    ALLOWED_JS_EXTS = ['.vue.js', '.vue.coffee', '.vue.es6']
     class << self
       include ActionView::Helpers::JavaScriptHelper
 
@@ -28,8 +29,14 @@ module Sprockets::Vue
       def call(input)
         data = input[:data]
         name = input[:name]
+        js_ext = ALLOWED_JS_EXTS.select { |ext| input[:uri].include? ext }
         input[:cache].fetch([cache_key, input[:source_path], data]) do
-          script = SCRIPT_REGEX.match(data)
+          script = if js_ext.empty?
+            SCRIPT_REGEX.match(data)
+          else
+            lang = js_ext.first.gsub('.vue.', '')
+            { lang: lang, content: data }
+          end
           template = TEMPLATE_REGEX.match(data)
           output = []
           map = nil
